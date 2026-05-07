@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Todoshka</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        max-width: 400px;
+        margin: 50px auto;
+      }
+      .task-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px;
+        border-bottom: 1px solid #eee;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Task manager</h2>
+    <input type="text" id="taskInput" placeholder="New task..." />
+    <button onclick="addTask()">Add</button>
+    <div id="taskList"></div>
+
+    <script>
+      async function loadTasks() {
+        const res = await fetch("/api/tasks");
+        const tasks = await res.json();
+        const list = document.getElementById("taskList");
+
+        list.innerHTML = tasks
+          .map(
+            (t) => `
+            <div class="task-item" style="text-decoration: ${t.completed ? "line-through" : "none"}">
+                <span>${t.text}</span>
+                <div>
+                    <button onclick="toggleComplete(${t.id})">${t.completed ? "Undo" : "Done"}</button>
+                    <button onclick="deleteTask(${t.id})" style="color: red;">Delete</button>
+                </div>
+            </div>
+        `,
+          )
+          .join("");
+      }
+
+      async function toggleComplete(id) {
+        await fetch(`/api/tasks/${id}`, { method: "PATCH" });
+        loadTasks();
+      }
+
+      async function deleteTask(id) {
+        if (confirm("Are you sure?")) {
+          await fetch(`/api/tasks/${id}`, { method: "DELETE" });
+          loadTasks();
+        }
+      }
+
+      async function addTask() {
+        const input = document.getElementById("taskInput");
+        await fetch("/api/tasks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: input.value }),
+        });
+        input.value = "";
+        loadTasks();
+      }
+
+      loadTasks();
+    </script>
+  </body>
+</html>
